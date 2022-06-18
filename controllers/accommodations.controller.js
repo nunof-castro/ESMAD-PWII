@@ -3,7 +3,7 @@ const db = require("../models/db.js");
 const Accommodation = db.accommodation;
 const User = db.user;
 const UserAccommodation = db.userAccommodation;
-const CommentAccommodation = db.commentAccommodation
+const CommentAccommodation = db.commentAccommodation;
 const { Op } = require("sequelize");
 
 //Get all accommodations
@@ -187,25 +187,35 @@ exports.createReservation = async (req, res) => {
     let accommodation = await Accommodation.findByPk(
       req.params.accommodationID
     );
-    console.log(accommodation)
-    
-    let reservations = await UserAccommodation.findAll({where: {accommodation_id: req.params.accommodationID, validation: 1}})
-    console.log(reservations.length)
+    console.log(accommodation);
+
+    let reservations = await UserAccommodation.findAll({
+      where: { accommodation_id: req.params.accommodationID, validation: 1 },
+    });
+    console.log(reservations.length);
 
     if (reservations.length >= accommodation.people_number) {
-      return res.status(400).json({message: 'Accommodation has reached the limit of people.'})
+      return res
+        .status(400)
+        .json({ message: "Accommodation has reached the limit of people." });
     }
 
-    let hasReservation = await UserAccommodation.findOne({where: {user_id: req.loggedUserId, accommodation_id: req.params.accommodationID}})
-    if(hasReservation){
-      return res.status(400).json({message: 'User already made a reservation'})
+    let hasReservation = await UserAccommodation.findOne({
+      where: {
+        user_id: req.loggedUserId,
+        accommodation_id: req.params.accommodationID,
+      },
+    });
+    if (hasReservation) {
+      return res
+        .status(400)
+        .json({ message: "User already made a reservation" });
     }
 
     if (accommodation === null) {
       return res.status(404).json({
         message: `Not found Accommodation with id ${req.body.accommodation_id}.`,
       });
-      
     }
 
     //Create reservation object
@@ -273,7 +283,7 @@ exports.findOneReservation = (req, res) => {
 };
 
 //Get Reservations by accommodation id
-exports.findRservationByAccommodation = (req, res) => {
+exports.findReservationByAccommodation = (req, res) => {
   UserAccommodation.findAll({
     where: { accommodation_id: req.params.accommodationID },
   })
@@ -294,7 +304,6 @@ exports.findRservationByAccommodation = (req, res) => {
       });
     });
 };
-
 
 //Update Reservation (validate reservation)
 exports.validateReservation = async (req, res) => {
@@ -347,7 +356,6 @@ exports.validateReservation = async (req, res) => {
   }
 };
 
-
 //Delete reservation
 exports.deleteReservation = (req, res) => {
   UserAccommodation.findOne({ where: { id: req.params.userAccommodationID } })
@@ -358,7 +366,9 @@ exports.deleteReservation = (req, res) => {
         });
       } else {
         if (req.loggedUserId === userAccommodation.user_id) {
-          UserAccommodation.destroy({ where: { id: req.params.userAccommodationID } })
+          UserAccommodation.destroy({
+            where: { id: req.params.userAccommodationID },
+          })
             .then((num) => {
               if (num == 1) {
                 res.status(200).json({
@@ -391,30 +401,32 @@ exports.deleteReservation = (req, res) => {
     });
 };
 
-
 //Create a comment
 exports.createComment = async (req, res) => {
   try {
-    let accommodation = await Accommodation.findByPk(req.params.accommodationID)
+    let accommodation = await Accommodation.findByPk(
+      req.params.accommodationID
+    );
     console.log(accommodation);
 
     if (accommodation === null) {
       return res.status(404).json({
         message: `Not found Accommodation with id ${req.params.accommodationID}.`,
       });
-      
     }
 
     //Create comment object
     let newComment = {
       user_id: req.loggedUserId,
       accommodation_id: req.params.accommodationID,
-      comment: req.body.comment
+      comment: req.body.comment,
     };
 
     CommentAccommodation.create(newComment);
 
-    res.status(201).json({ message: `New comment posted on accommodation with id ${req.params.accommodationID}.`});
+    res.status(201).json({
+      message: `New comment posted on accommodation with id ${req.params.accommodationID}.`,
+    });
   } catch (err) {
     if (err.name === "SequelizeValidationError")
       return res.status(400).json({ message: err.errors[0].message });
@@ -423,5 +435,162 @@ exports.createComment = async (req, res) => {
         message:
           err.message || "Some error occurred while creating the comment.",
       });
+  }
+};
+
+//Get all accommodation comments
+exports.findAllComments = (req, res) => {
+  CommentAccommodation.findAll()
+    .then((data) => {
+      if (data.length == 0) {
+        res.status(404).json({
+          message: "No comments posted!",
+        });
+      } else {
+        res.status(200).json(data);
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving comments.",
+      });
+    });
+};
+
+//Get Comments by accommodation id
+exports.findCommentsbyAccommodationId = (req, res) => {
+  CommentAccommodation.findAll({
+    where: { accommodation_id: req.params.accommodationID },
+  })
+    .then((data) => {
+      if (data === null)
+        res.status(404).json({
+          message: `No comments posted in this accommodation!`,
+        });
+      else {
+        res.json(data);
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving the comments!",
+      });
+    });
+};
+
+//Get comment by id
+exports.findCommentById = (req, res) => {
+  CommentAccommodation.findOne({ where: { id: req.params.commentID } })
+    .then((data) => {
+      if (data === null)
+        res.status(404).json({
+          message: `Comment with id ${req.params.commentID} not found!`,
+        });
+      else {
+        res.json(data);
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving the comment!",
+      });
+    });
+};
+
+//Delete comment
+exports.deleteComment = (req, res) => {
+  CommentAccommodation.findOne({
+    where: { id: req.params.commentID },
+  })
+    .then((comment) => {
+      if (comment === null) {
+        res.status(404).json({
+          message: `Comment with id ${req.params.commentID} not found!`,
+        });
+      } else {
+        CommentAccommodation.destroy({
+          where: { id: req.params.commentID },
+        })
+          .then((num) => {
+            if (num == 1) {
+              res.status(200).json({
+                message: `Comment with id ${req.params.commentID} deleted with success`,
+              });
+            } else {
+              res.status(404).json({
+                message: `Comment with id ${req.params.commentID} not found!`,
+              });
+            }
+          })
+          .catch((err) => {
+            8;
+            res.status(500).json({
+              message:
+                err.message ||
+                "Some error occurred while deleting the comment!",
+            });
+          });
+      }
+    })
+    .catch((error) => {
+      res.status(500).json(error.toString());
+    });
+};
+
+//Update comment
+exports.updateComment = async (req, res) => {
+  //Check if data exists in request body
+  if (!req.body) {
+    res.status(400).json({ message: "No changes made" });
+    return;
+  }
+
+  try {
+    let comment = await CommentAccommodation.findByPk(
+      req.params.commentID
+    );
+
+    //Check if found pretended comment
+    if (comment == null) {
+      res.status(404).json({
+        message: `Comment with id ${req.params.commentID} doesn't exist.`,
+      });
+      return;
+    }
+    //Check if logged user is the same as the comment's user
+    if (req.loggedUserId === comment.user_id) {
+      //if so, update comment
+      let updateComment = await CommentAccommodation.update(
+        {
+          comment: req.body.comment
+        },
+        { where: { id: req.params.commentID } }
+      );
+
+      //check if update was successfully made
+      if (updateComment == 1) {
+        res.status(200).json({
+          message: `Comment ${req.params.commentID} updated with success.`,
+        });
+      } else {
+        res.status(400).json({
+          message: `Can't applied changes to comment with id ${req.params.commentID}.`,
+        });
+      }
+    } else {
+      res.status(400).json({
+        message:
+          "Only user who posted this comment can change it!",
+      });
+    }
+  } catch (e) {
+    res.status(500).json({
+      message:
+        e.message ||
+        `Error updating comment with id=${req.params.commentID}.`,
+    });
   }
 };

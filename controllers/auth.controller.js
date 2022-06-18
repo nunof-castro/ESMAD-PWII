@@ -113,13 +113,9 @@ exports.isAdmin= async (req, res, next) => {
 
 exports.isClient= async (req, res, next) => {
     let user = await User.findByPk(req.loggedUserId);
-   
-
-    console.log(type.name)
     
     if (user.user_role == 0) {
         next();
-        console.log("cliente");
     } else {
         return res.status(403).send({ message: "Require Cliente Role!" });
     }
