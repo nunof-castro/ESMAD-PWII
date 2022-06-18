@@ -14,15 +14,25 @@ router.use((req, res, next) => {
 
 router.post('/', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.create) //Verificar se os campos estão vazios
 router.get('/', eventController.findAll);
+router.get('/comments',authController.verifyToken, authController.isAdmin, eventController.findAllComments)
 router.get('/:eventID', eventController.findOne);
 router.put('/:eventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.updateEvent);
 router.delete('/:eventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.deleteEvent);
+
+
 router.post('/:eventID/register', authController.verifyToken, eventController.createRegistration)
 router.get('/registrations/active', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findActiveRegistrations) //Verificação do facilitador
 router.get('/registrations/unactive', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findUnactiveRegistrations) //Verificação do facilitador
 router.get('/registrations/:userEventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findOneRegistration) //Verificação do facilitador
 router.get('/:eventID/registrations', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findRegistrationByEvent) //Verificação do facilitador
 router.delete('/registrations/:userEventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.deleteRegistration)
+
+
+router.post('/:eventID/comments',authController.verifyToken, authController.isClient, eventController.createComment)
+router.get('/:eventID/comments',authController.verifyToken,authController.isAdmin, eventController.findCommentsbyEventId)
+router.get('/comments/:commentID',authController.verifyToken,authController.isAdmin, eventController.findCommentById)
+router.delete('/comments/:commentID', authController.verifyToken, authController.isAdmin, eventController.deleteComment)
+router.put('/comments/:commentID', authController.verifyToken, eventController.updateComment)
 
 //send a predefined error message for invalid routes on Accommodations
 router.all('*', function (req, res) {

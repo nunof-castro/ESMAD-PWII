@@ -1,8 +1,8 @@
-// get resource model (definition and DB operations)
 const db = require("../models/db.js");
 const Event = db.event;
 const User = db.user;
 const UserEvent = db.userEvent;
+const CommentEvent = db.commentEvent;
 const { Op } = require("sequelize");
 
 //Create an event
@@ -340,4 +340,201 @@ exports.deleteRegistration = (req, res) => {
     .catch((error) => {
       res.status(500).json(error.toString());
     });
+};
+
+
+//Create a comment
+exports.createComment = async (req, res) => {
+  try {
+    let event = await Event.findByPk(
+      req.params.eventID
+    );
+
+    if (event === null) {
+      return res.status(404).json({
+        message: `Not found Event with id ${req.params.eventID}.`,
+      });
+    }
+
+    //Create comment object
+    let newComment = {
+      user_id: req.loggedUserId,
+      event_id: req.params.eventID,
+      comment: req.body.comment,
+    };
+
+    CommentEvent.create(newComment);
+
+    res.status(201).json({
+      message: `New comment posted on event with id ${req.params.eventID}.`,
+    });
+  } catch (err) {
+    if (err.name === "SequelizeValidationError")
+      return res.status(400).json({ message: err.errors[0].message });
+    else
+      return res.status(500).json({
+        message:
+          err.message || "Some error occurred while creating the comment.",
+      });
+  }
+};
+
+//Get all events comments
+exports.findAllComments = (req, res) => {
+  CommentEvent.findAll()
+    .then((data) => {
+      if (data.length == 0) {
+        res.status(404).json({
+          message: "No comments posted!",
+        });
+      } else {
+        res.status(200).json(data);
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving comments.",
+      });
+    });
+};
+
+
+//Get Comments by event id
+exports.findCommentsbyEventId = (req, res) => {
+  CommentEvent.findAll({
+    where: { event_id: req.params.eventID },
+  })
+    .then((data) => {
+      if (data === null)
+        res.status(404).json({
+          message: `No comments posted in this event!`,
+        });
+      else {
+        res.json(data);
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving the comments!",
+      });
+    });
+};
+
+//Get comment by id
+exports.findCommentById = (req, res) => {
+  CommentEvent.findOne({ where: { id: req.params.commentID } })
+    .then((data) => {
+      if (data === null)
+        res.status(404).json({
+          message: `Comment with id ${req.params.commentID} not found!`,
+        });
+      else {
+        res.json(data);
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving the comment!",
+      });
+    });
+};
+
+
+//Delete comment
+exports.deleteComment = (req, res) => {
+  CommentEvent.findOne({
+    where: { id: req.params.commentID },
+  })
+    .then((comment) => {
+      if (comment === null) {
+        res.status(404).json({
+          message: `Comment with id ${req.params.commentID} not found!`,
+        });
+      } else {
+        CommentEvent.destroy({
+          where: { id: req.params.commentID },
+        })
+          .then((num) => {
+            if (num == 1) {
+              res.status(200).json({
+                message: `Comment with id ${req.params.commentID} deleted with success`,
+              });
+            } else {
+              res.status(404).json({
+                message: `Comment with id ${req.params.commentID} not found!`,
+              });
+            }
+          })
+          .catch((err) => {
+            8;
+            res.status(500).json({
+              message:
+                err.message ||
+                "Some error occurred while deleting the comment!",
+            });
+          });
+      }
+    })
+    .catch((error) => {
+      res.status(500).json(error.toString());
+    });
+};
+
+
+//Update comment
+exports.updateComment = async (req, res) => {
+  //Check if data exists in request body
+  if (!req.body) {
+    res.status(400).json({ message: "No changes made" });
+    return;
+  }
+
+  try {
+    let comment = await CommentEvent.findByPk(
+      req.params.commentID
+    );
+
+    //Check if found pretended comment
+    if (comment == null) {
+      res.status(404).json({
+        message: `Comment with id ${req.params.commentID} doesn't exist.`,
+      });
+      return;
+    }
+    //Check if logged user is the same as the comment's user
+    if (req.loggedUserId === comment.user_id) {
+      //if so, update comment
+      let updateComment = await CommentEvent.update(
+        {
+          comment: req.body.comment
+        },
+        { where: { id: req.params.commentID } }
+      );
+
+      //check if update was successfully made
+      if (updateComment == 1) {
+        res.status(200).json({
+          message: `Comment ${req.params.commentID} updated with success.`,
+        });
+      } else {
+        res.status(400).json({
+          message: `Can't applied changes to comment with id ${req.params.commentID}.`,
+        });
+      }
+    } else {
+      res.status(400).json({
+        message:
+          "Only user who posted this comment can change it!",
+      });
+    }
+  } catch (e) {
+    res.status(500).json({
+      message:
+        e.message ||
+        `Error updating comment with id=${req.params.commentID}.`,
+    });
+  }
 };

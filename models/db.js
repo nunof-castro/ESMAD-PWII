@@ -31,6 +31,7 @@ db.userAccommodation = require("./user_accommodations.model")(sequelize, DataTyp
 db.event = require("./events.model.js")(sequelize, DataTypes);
 db.userEvent = require("./user_events.model")(sequelize, DataTypes)
 db.commentAccommodation = require("./comments_accommodations.model")(sequelize, DataTypes)
+db.commentEvent = require("./comments_events.model")(sequelize, DataTypes)
 
 db.user.hasMany(db.accommodation)
 db.accommodation.belongsTo(db.user)
@@ -47,6 +48,8 @@ db.event.belongsTo(db.user)
 db.event.belongsToMany(db.user , {through: db.userEvent, as :'registrations', foreignKey:"event_id"})
 db.user.belongsToMany(db.event , {through: db.userEvent, as :'registrations', foreignKey:"user_id"})
 
+db.event.belongsToMany(db.user, {through: db.commentEvent, as: "comments_event", foreignKey:"event_id"})
+db.user.belongsToMany(db.event , {through: db.commentEvent, as :'comments_event', foreignKey:"user_id"})
 
 
 module.exports = db;

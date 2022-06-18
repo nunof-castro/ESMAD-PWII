@@ -2,6 +2,7 @@
 const db = require("../models/db.js");
 const User = db.user;
 const Accommodation = db.accommodation;
+const Event = db.event;
 const CommentAccommodation = db.commentAccommodation;
 
 const { Op } = require("sequelize");
@@ -17,11 +18,19 @@ exports.findAll = (req, res) => {
         as: "reservations",
         attributes: ["id"],
       },
-    ],
-    include: [
       {
         model: Accommodation,
         as: "comments_accommodation",
+        attributes: ["id"],
+      },
+      {
+        model: Event,
+        as: "registrations",
+        attributes: ["id"],
+      },
+      {
+        model: Event,
+        as: "comments_event",
         attributes: ["id"],
       },
     ],
@@ -54,12 +63,10 @@ exports.findOne = (req, res) => {
       }
     })
     .catch((err) => {
-      res
-        .status(500)
-        .json({
-          message:
-            err.message || "Some error occurred while retrieving the user!",
-        });
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving the user!",
+      });
     });
 };
 
