@@ -24,6 +24,11 @@ exports.findAll = (req, res) => {
         attributes: ["id"],
       },
       {
+        model: Accommodation,
+        as: "ratings",
+        attributes: ["id"],
+      },
+      {
         model: Event,
         as: "registrations",
         attributes: ["id"],

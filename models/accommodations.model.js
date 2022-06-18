@@ -30,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             validate: { notNull: { msg: "Room type can not be empty!" } }
         },
+        rating: {
+            type: DataTypes.DOUBLE,
+            allowNull: false,
+            validate: { notNull: { msg: "Rating can not be empty!" } } 
+        },
     }, {
         timestamps: false
     });

@@ -4,6 +4,7 @@ const Accommodation = db.accommodation;
 const User = db.user;
 const UserAccommodation = db.userAccommodation;
 const CommentAccommodation = db.commentAccommodation;
+const Rating = db.rating;
 const { Op } = require("sequelize");
 
 //Get all accommodations
@@ -57,6 +58,7 @@ exports.create = (req, res) => {
     beds_number: req.body.beds_number,
     people_number: req.body.people_number,
     room_type: req.body.room_type,
+    rating: 0,
   };
 
   Accommodation.create(newAccommodation)
@@ -192,7 +194,6 @@ exports.createReservation = async (req, res) => {
     let reservations = await UserAccommodation.findAll({
       where: { accommodation_id: req.params.accommodationID, validation: 1 },
     });
-    console.log(reservations.length);
 
     if (reservations.length >= accommodation.people_number) {
       return res
@@ -206,6 +207,7 @@ exports.createReservation = async (req, res) => {
         accommodation_id: req.params.accommodationID,
       },
     });
+    
     if (hasReservation) {
       return res
         .status(400)
@@ -223,8 +225,6 @@ exports.createReservation = async (req, res) => {
       user_id: req.loggedUserId,
       accommodation_id: req.params.accommodationID,
       validation: 0,
-      // rating : req.body.rating,
-      // comments: req.body.comments
     };
 
     UserAccommodation.create(newReservation);
@@ -549,9 +549,7 @@ exports.updateComment = async (req, res) => {
   }
 
   try {
-    let comment = await CommentAccommodation.findByPk(
-      req.params.commentID
-    );
+    let comment = await CommentAccommodation.findByPk(req.params.commentID);
 
     //Check if found pretended comment
     if (comment == null) {
@@ -565,7 +563,7 @@ exports.updateComment = async (req, res) => {
       //if so, update comment
       let updateComment = await CommentAccommodation.update(
         {
-          comment: req.body.comment
+          comment: req.body.comment,
         },
         { where: { id: req.params.commentID } }
       );
@@ -582,15 +580,90 @@ exports.updateComment = async (req, res) => {
       }
     } else {
       res.status(400).json({
-        message:
-          "Only user who posted this comment can change it!",
+        message: "Only user who posted this comment can change it!",
       });
     }
   } catch (e) {
     res.status(500).json({
       message:
-        e.message ||
-        `Error updating comment with id=${req.params.commentID}.`,
+        e.message || `Error updating comment with id=${req.params.commentID}.`,
     });
+  }
+};
+
+//post a rating
+exports.createRating = async (req, res) => {
+  try {
+    let accommodation = await Accommodation.findByPk(
+      req.params.accommodationID
+    );
+
+    let hasRated = await Rating.findOne({
+      where: {
+        user_id: req.loggedUserId,
+        accommodation_id: req.params.accommodationID,
+      },
+    });
+
+    if (hasRated) {
+      return res
+        .status(400)
+        .json({ message: "User already rated this accommodation" });
+    }
+
+    if (accommodation === null) {
+      return res.status(404).json({
+        message: `Not found Accommodation with id ${req.body.accommodation_id}.`,
+      });
+    }
+
+    //Create rating object
+    let newRating = {
+      user_id: req.loggedUserId,
+      accommodation_id: req.params.accommodationID,
+      rating: req.body.rating,
+    };
+
+    if (newRating.rating > 0 && newRating.rating < 6) {
+      Rating.create(newRating);
+
+      let ratings = await Rating.findAll({
+        where: { accommodation_id: req.params.accommodationID },
+      });
+      console.log(ratings.length);
+
+      let total
+      for(let i=0; i< ratings.length; i++){
+        total += ratings[i]
+      }
+
+      let updateAccommodation = await Accommodation.update(
+        {
+          rating: total / ratings.length,
+        },
+        { where: { id: req.params.accommodationID } }
+      );
+
+      //check if update was successfully made
+      if (updateAccommodation == 1) {
+        res.status(200).json({
+          message: `Accommodation Rating with id ${req.params.accommodationID} updated with success.`,
+        });
+      } else {
+        res.status(400).json({
+          message: `Can't applied changes to accommodation rating with id ${req.params.accommodationID}.`,
+        });
+      }
+    }
+
+    res.status(201).json({ message: "New Rating created." });
+  } catch (err) {
+    if (err.name === "SequelizeValidationError")
+      return res.status(400).json({ message: err.errors[0].message });
+    else
+      return res.status(500).json({
+        message:
+          err.message || "Some error occurred while creating the rating.",
+      });
   }
 };

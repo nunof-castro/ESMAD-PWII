@@ -34,6 +34,8 @@ router.get('/comments/:commentID',authController.verifyToken,authController.isAd
 router.delete('/comments/:commentID', authController.verifyToken, authController.isAdmin, accommodationController.deleteComment)
 router.put('/comments/:commentID', authController.verifyToken, accommodationController.updateComment)
 
+router.post('/:accommodationID/ratings', authController.verifyToken, authController.isClient, accommodationController.createRating)
+
 //send a predefined error message for invalid routes on Accommodations
 router.all('*', function (req, res) {
     res.status(404).json({ message: 'Accommodation: what???' });
