@@ -14,7 +14,7 @@ router.use((req, res, next) => {
 
 
 
-router.get('/',authController.verifyToken,authController.isAdmin, userController.findAll);
+router.get('/',authController.verifyToken, authController.isAdmin, userController.findAll);
 router.get('/active',authController.verifyToken,authController.isAdmin, userController.findAllActives);
 router.get('/banned',authController.verifyToken,authController.isAdmin, userController.findAllBanned);
 router.get('/:userID',authController.verifyToken,authController.isAdmin, userController.findOne);
