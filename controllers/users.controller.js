@@ -41,7 +41,13 @@ exports.findAll = (req, res) => {
     ],
   })
     .then((data) => {
-      if (data.length == 0) {
+      let isAdmin = User.findOne({where:{id:req.loggedUserId, user_role:1}})
+
+      if (data.length == 0 ) {
+        res.status(404).json({
+          message: "No users registered",
+        });
+      }else if(data.length == 1 && isAdmin){
         res.status(404).json({
           message: "No users registered",
         });
@@ -92,7 +98,12 @@ exports.findAllActives = (req, res) => {
     
   )
     .then((data) => {
+      let isAdmin = User.findOne({where:{id:req.loggedUserId, user_role:1}})
       if (data.length == 0) {
+        res.status(404).json({
+          message: "No active users",
+        });
+      }else if(data.length == 1 && isAdmin){
         res.status(404).json({
           message: "No active users",
         });
@@ -243,9 +254,9 @@ exports.updateUserInfo = async (req, res) => {
         });
       }
     } else {
-      res.status(400).json({
+      res.status(401).json({
         message:
-          "Only facilitator who posted this accommodation can update it!",
+          `Only user with id ${req.params.userID} can change his info!`,
       });
     }
   } catch (e) {

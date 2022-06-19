@@ -10,7 +10,15 @@ const { rating } = require("../models/db.js");
 
 //Get all accommodations
 exports.findAll = (req, res) => {
-  Accommodation.findAll()
+  Accommodation.findAll({
+    include: [
+      {
+        model: User,
+        as: "comments_accommodation",
+        attributes: ["id"],
+      },
+    ],
+  })
     .then((data) => {
       if (data.length == 0) {
         res.status(404).json({
@@ -146,7 +154,7 @@ exports.updateAccommodation = async (req, res) => {
         });
       }
     } else {
-      res.status(400).json({
+      res.status(401).json({
         message:
           "Only facilitator who posted this accommodation can update it!",
       });
@@ -169,16 +177,17 @@ exports.remove = (req, res) => {
           message: `Accommodation with id ${req.params.accommodationID} not found!`,
         });
       } else {
-        if (req.loggedUserId === accommodation.userId) {
+        let isAdmin = User.findOne({ where: { id: accommodation.userId } });
+
+        if (
+          req.loggedUserId === accommodation.userId ||
+          isAdmin.user_role == 1
+        ) {
           Accommodation.destroy({ where: { id: req.params.accommodationID } })
             .then((num) => {
               if (num == 1) {
                 res.status(200).json({
                   message: `Accommodation with id ${req.params.accommodationID} deleted with success`,
-                });
-              } else {
-                res.status(404).json({
-                  message: `Accommodation with id ${req.params.accommodationID} not found!`,
                 });
               }
             })
@@ -190,7 +199,7 @@ exports.remove = (req, res) => {
               });
             });
         } else {
-          res.status(400).json({
+          res.status(401).json({
             message:
               "Only facilitator who posted this accommodation can delete it!",
           });
@@ -208,6 +217,12 @@ exports.createReservation = async (req, res) => {
     let accommodation = await Accommodation.findByPk(
       req.params.accommodationID
     );
+
+    if (accommodation === null) {
+      return res.status(404).json({
+        message: `Not found Accommodation with id ${req.params.accommodationID}.`,
+      });
+    }
 
     let reservations = await UserAccommodation.findAll({
       where: { accommodation_id: req.params.accommodationID, validation: 1 },
@@ -232,12 +247,6 @@ exports.createReservation = async (req, res) => {
         .json({ message: "User already made a reservation" });
     }
 
-    if (accommodation === null) {
-      return res.status(404).json({
-        message: `Not found Accommodation with id ${req.body.accommodation_id}.`,
-      });
-    }
-
     //Create reservation object
     let newReservation = {
       user_id: req.loggedUserId,
@@ -259,7 +268,7 @@ exports.createReservation = async (req, res) => {
   }
 };
 
-//Get all reservations
+//Get all active reservations
 exports.findReservations = (req, res) => {
   UserAccommodation.findAll({ where: { validation: 1 } })
     .then((data) => {
@@ -288,14 +297,23 @@ exports.findOneReservation = (req, res) => {
           message: `Reservation with id ${req.params.userAccommodationID} not found!`,
         });
       else {
-        if (req.loggedUserId === data.user_id) {
-          res.json(data);
-        } else {
-          res.status(400).json({
-            message:
-              "Only facilitator who posted this accommodation can delete it!",
-          });
-        }
+        User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
+          Accommodation.findOne({ where: { id: data.accommodation_id } }).then(
+            (accommodation) => {
+              if (
+                req.loggedUserId === accommodation.userId ||
+                user.user_role == 1
+              ) {
+                res.status(200).json(data);
+              } else {
+                res.status(401).json({
+                  message:
+                    "Only facilitator who posted this accommodation can check this reservation it!",
+                });
+              }
+            }
+          );
+        });
       }
     })
     .catch((err) => {
@@ -313,19 +331,28 @@ exports.findReservationByAccommodation = (req, res) => {
     where: { accommodation_id: req.params.accommodationID },
   })
     .then((data) => {
-      if (data === null)
+      if (data.length ==0)
         res.status(404).json({
-          message: `Reservation with id_accommodation ${req.params.userAccommodationID} not found!`,
+          message: `Reservation with id_accommodation ${req.params.accommodationID} not found!`,
         });
       else {
-        if (req.loggedUserId === data.user_id) {
-          res.json(data);
-        } else {
-          res.status(400).json({
-            message:
-              "Only facilitator who posted this accommodation can delete it!",
+        User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
+          Accommodation.findOne({
+            where: { id: req.params.accommodationID },
+          }).then((accommodation) => {
+            if (
+              req.loggedUserId === accommodation.userId ||
+              user.user_role == 1
+            ) {
+              res.status(200).json(data);
+            } else {
+              res.status(401).json({
+                message:
+                  "Only facilitator who posted this accommodation can check this reservation it!",
+              });
+            }
           });
-        }
+        });
       }
     })
     .catch((err) => {
@@ -374,7 +401,7 @@ exports.validateReservation = async (req, res) => {
         });
       }
     } else {
-      res.status(400).json({
+      res.status(401).json({
         message:
           "Only facilitator who posted this accommodation can validate the reservation!",
       });
@@ -623,83 +650,6 @@ exports.updateComment = async (req, res) => {
   }
 };
 
-// //post a rating
-// exports.createRating = async (req, res) => {
-//   try {
-//     let accommodation = await Accommodation.findByPk(
-//       req.params.accommodationID
-//     );
-
-//     let hasRated = await Rating.findOne({
-//       where: {
-//         user_id: req.loggedUserId,
-//         accommodation_id: req.params.accommodationID,
-//       },
-//     });
-
-//     if (hasRated) {
-//       return res
-//         .status(400)
-//         .json({ message: "User already rated this accommodation" });
-//     }
-
-//     if (accommodation === null) {
-//       return res.status(404).json({
-//         message: `Not found Accommodation with id ${req.body.accommodation_id}.`,
-//       });
-//     }
-
-//     //Create rating object
-//     let newRating = {
-//       user_id: req.loggedUserId,
-//       accommodation_id: req.params.accommodationID,
-//       rating: req.body.rating,
-//     };
-
-//     if (newRating.rating > 0 && newRating.rating < 6) {
-//       Rating.create(newRating);
-
-//       let ratings = await Rating.findAll({
-//         where: { accommodation_id: req.params.accommodationID },
-//       });
-//       console.log(ratings.length);
-
-//       let total
-//       for(let i=0; i< ratings.length; i++){
-//         total += ratings[i]
-//       }
-
-//       let updateAccommodation = await Accommodation.update(
-//         {
-//           rating: total / ratings.length,
-//         },
-//         { where: { id: req.params.accommodationID } }
-//       );
-
-//       //check if update was successfully made
-//       if (updateAccommodation == 1) {
-//         res.status(200).json({
-//           message: `Accommodation Rating with id ${req.params.accommodationID} updated with success.`,
-//         });
-//       } else {
-//         res.status(400).json({
-//           message: `Can't applied changes to accommodation rating with id ${req.params.accommodationID}.`,
-//         });
-//       }
-//     }
-
-//     res.status(201).json({ message: "New Rating created." });
-//   } catch (err) {
-//     if (err.name === "SequelizeValidationError")
-//       return res.status(400).json({ message: err.errors[0].message });
-//     else
-//       return res.status(500).json({
-//         message:
-//           err.message || "Some error occurred while creating the rating.",
-//       });
-//   }
-// };
-
 //Create a reservation
 exports.createRating = async (req, res) => {
   try {
@@ -745,7 +695,6 @@ exports.createRating = async (req, res) => {
       let total = 0;
       for (let i = 0; i < ratings.length; i++) {
         total += ratings[i].rating;
-        
       }
       console.log(total);
       if (ratings.length != 0) {

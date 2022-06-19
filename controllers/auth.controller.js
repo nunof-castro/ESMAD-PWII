@@ -41,11 +41,9 @@ exports.signin= async (req, res) => {
         if (!user) 
             return res.status(404).json({ message: `User ${req.body.username} doesn't exist! Keep sure you register before loggin.` });
         // tests a string (password in body) against a hash (password in database)
-        console.log("comparação",req.body.password, user.password)
         const passwordIsValid = bcrypt.compareSync( 
             req.body.password, user.password
         );
-        console.log("valid?:", passwordIsValid)
         
         if (!passwordIsValid) {
             return res.status(401).json({
