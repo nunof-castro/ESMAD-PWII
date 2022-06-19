@@ -50,7 +50,30 @@ exports.create = (req, res) => {
 
 //Get all Events
 exports.findAll = (req, res) => {
-  Event.findAll()
+  let { price } = req.query;
+
+  let condition = null;
+
+  if (price) {
+    if (condition == null) {
+      condition = {
+        price: { [Op.gte]: price },
+      };
+    } else {
+      condition["price"] = { [Op.gte]: price };
+    }
+  }
+
+  Event.findAll({
+    where: condition,
+    include: [
+      {
+        model: User,
+        as: "comments_event",
+        attributes: ["id"],
+      },
+    ],
+  })
     .then((data) => {
       if (data.length == 0) {
         res.status(404).json({
@@ -231,21 +254,16 @@ exports.findOneRegistration = (req, res) => {
         });
       else {
         User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
-          Event.findOne({ where: { id: data.event_id } }).then(
-            (event) => {
-              if (
-                req.loggedUserId === event.userId ||
-                user.user_role == 1
-              ) {
-                res.status(200).json(data);
-              } else {
-                res.status(401).json({
-                  message:
-                    "Only facilitator who posted this event can check this registration!",
-                });
-              }
+          Event.findOne({ where: { id: data.event_id } }).then((event) => {
+            if (req.loggedUserId === event.userId || user.user_role == 1) {
+              res.status(200).json(data);
+            } else {
+              res.status(401).json({
+                message:
+                  "Only facilitator who posted this event can check this registration!",
+              });
             }
-          );
+          });
         });
       }
     })
@@ -259,7 +277,6 @@ exports.findOneRegistration = (req, res) => {
 
 //Get registrations by event_id
 exports.findRegistrationByEvent = (req, res) => {
-
   UserEvent.findAll({
     where: { event_id: req.params.eventID },
   })
@@ -269,15 +286,11 @@ exports.findRegistrationByEvent = (req, res) => {
           message: `No registrations in event with id ${req.params.eventID}`,
         });
       else {
-
         User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
           Event.findOne({
             where: { id: req.params.eventID },
           }).then((event) => {
-            if (
-              req.loggedUserId === event.userId ||
-              user.user_role == 1
-            ) {
+            if (req.loggedUserId === event.userId || user.user_role == 1) {
               res.status(200).json(data);
             } else {
               res.status(401).json({
@@ -310,10 +323,7 @@ exports.deleteRegistration = (req, res) => {
           Event.findOne({
             where: { id: userEvent.event_id },
           }).then((event) => {
-            if (
-              req.loggedUserId === event.userId ||
-              user.user_role == 1
-            ) {
+            if (req.loggedUserId === event.userId || user.user_role == 1) {
               UserEvent.destroy({
                 where: { id: req.params.userEventID },
               })
@@ -343,7 +353,7 @@ exports.deleteRegistration = (req, res) => {
               });
             }
           });
-        })
+        });
       }
     })
     .catch((error) => {

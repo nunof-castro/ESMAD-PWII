@@ -697,7 +697,7 @@ exports.createRating = async (req, res) => {
 
     if (accommodation === null) {
       return res.status(404).json({
-        message: `Not found Accommodation with id ${req.body.accommodation_id}.`,
+        message: `Not found Accommodation with id ${req.params.accommodationID}.`,
       });
     }
 
@@ -714,14 +714,11 @@ exports.createRating = async (req, res) => {
       let ratings = await Rating.findAll({
         where: { accommodation_id: req.params.accommodationID },
       });
-      console.log("entrouuuuuuuuuuuuuuuuuuuuuu");
-      console.log(ratings.length);
 
       let total = 0;
       for (let i = 0; i < ratings.length; i++) {
         total += ratings[i].rating;
       }
-      console.log(total);
       if (ratings.length != 0) {
         let updateAccommodation = await Accommodation.update(
           {
@@ -731,11 +728,11 @@ exports.createRating = async (req, res) => {
         );
         // check if update was successfully made
         if (updateAccommodation == 1) {
-          res.status(200).json({
+          return res.status(200).json({
             message: `Accommodation Rating with id ${req.params.accommodationID} updated with success.`,
           });
         } else {
-          res.status(400).json({
+         return res.status(400).json({
             message: `Can't applied changes to accommodation rating with id ${req.params.accommodationID}.`,
           });
         }
