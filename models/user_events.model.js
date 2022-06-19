@@ -21,11 +21,6 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             validate: { notNull: { msg: "Event ID can not be empty!" } } 
         },
-        validation: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            validate: { notNull: { msg: "Validation can not be empty!" } } 
-        },
         
     }, {
         timestamps: false

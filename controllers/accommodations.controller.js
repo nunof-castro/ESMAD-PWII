@@ -6,6 +6,7 @@ const UserAccommodation = db.userAccommodation;
 const CommentAccommodation = db.commentAccommodation;
 const Rating = db.rating;
 const { Op } = require("sequelize");
+const { rating } = require("../models/db.js");
 
 //Get all accommodations
 exports.findAll = (req, res) => {
@@ -60,6 +61,24 @@ exports.create = (req, res) => {
     room_type: req.body.room_type,
     rating: 0,
   };
+
+  if (req.body.room_type == "") {
+    return res.status(400).json({
+      message: "Room type cant be empty",
+    });
+  } else if (req.body.address == "") {
+    return res.status(400).json({
+      message: "Address cant be empty",
+    });
+  } else if (req.body.time_available == "") {
+    return res.status(400).json({
+      message: "Time cant be empty",
+    });
+  } else if (req.body.price_range == "") {
+    return res.status(400).json({
+      message: "Price cant be empty",
+    });
+  }
 
   Accommodation.create(newAccommodation)
     .then((data) => {
@@ -189,7 +208,6 @@ exports.createReservation = async (req, res) => {
     let accommodation = await Accommodation.findByPk(
       req.params.accommodationID
     );
-    console.log(accommodation);
 
     let reservations = await UserAccommodation.findAll({
       where: { accommodation_id: req.params.accommodationID, validation: 1 },
@@ -207,7 +225,7 @@ exports.createReservation = async (req, res) => {
         accommodation_id: req.params.accommodationID,
       },
     });
-    
+
     if (hasReservation) {
       return res
         .status(400)
@@ -243,7 +261,7 @@ exports.createReservation = async (req, res) => {
 
 //Get all reservations
 exports.findReservations = (req, res) => {
-  UserAccommodation.findAll()
+  UserAccommodation.findAll({ where: { validation: 1 } })
     .then((data) => {
       if (data.length == 0) {
         res.status(404).json({
@@ -270,7 +288,14 @@ exports.findOneReservation = (req, res) => {
           message: `Reservation with id ${req.params.userAccommodationID} not found!`,
         });
       else {
-        res.json(data);
+        if (req.loggedUserId === data.user_id) {
+          res.json(data);
+        } else {
+          res.status(400).json({
+            message:
+              "Only facilitator who posted this accommodation can delete it!",
+          });
+        }
       }
     })
     .catch((err) => {
@@ -293,7 +318,14 @@ exports.findReservationByAccommodation = (req, res) => {
           message: `Reservation with id_accommodation ${req.params.userAccommodationID} not found!`,
         });
       else {
-        res.json(data);
+        if (req.loggedUserId === data.user_id) {
+          res.json(data);
+        } else {
+          res.status(400).json({
+            message:
+              "Only facilitator who posted this accommodation can delete it!",
+          });
+        }
       }
     })
     .catch((err) => {
@@ -591,7 +623,84 @@ exports.updateComment = async (req, res) => {
   }
 };
 
-//post a rating
+// //post a rating
+// exports.createRating = async (req, res) => {
+//   try {
+//     let accommodation = await Accommodation.findByPk(
+//       req.params.accommodationID
+//     );
+
+//     let hasRated = await Rating.findOne({
+//       where: {
+//         user_id: req.loggedUserId,
+//         accommodation_id: req.params.accommodationID,
+//       },
+//     });
+
+//     if (hasRated) {
+//       return res
+//         .status(400)
+//         .json({ message: "User already rated this accommodation" });
+//     }
+
+//     if (accommodation === null) {
+//       return res.status(404).json({
+//         message: `Not found Accommodation with id ${req.body.accommodation_id}.`,
+//       });
+//     }
+
+//     //Create rating object
+//     let newRating = {
+//       user_id: req.loggedUserId,
+//       accommodation_id: req.params.accommodationID,
+//       rating: req.body.rating,
+//     };
+
+//     if (newRating.rating > 0 && newRating.rating < 6) {
+//       Rating.create(newRating);
+
+//       let ratings = await Rating.findAll({
+//         where: { accommodation_id: req.params.accommodationID },
+//       });
+//       console.log(ratings.length);
+
+//       let total
+//       for(let i=0; i< ratings.length; i++){
+//         total += ratings[i]
+//       }
+
+//       let updateAccommodation = await Accommodation.update(
+//         {
+//           rating: total / ratings.length,
+//         },
+//         { where: { id: req.params.accommodationID } }
+//       );
+
+//       //check if update was successfully made
+//       if (updateAccommodation == 1) {
+//         res.status(200).json({
+//           message: `Accommodation Rating with id ${req.params.accommodationID} updated with success.`,
+//         });
+//       } else {
+//         res.status(400).json({
+//           message: `Can't applied changes to accommodation rating with id ${req.params.accommodationID}.`,
+//         });
+//       }
+//     }
+
+//     res.status(201).json({ message: "New Rating created." });
+//   } catch (err) {
+//     if (err.name === "SequelizeValidationError")
+//       return res.status(400).json({ message: err.errors[0].message });
+//     else
+//       return res.status(500).json({
+//         message:
+//           err.message || "Some error occurred while creating the rating.",
+//       });
+//   }
+// };
+
+//Create a reservation
 exports.createRating = async (req, res) => {
   try {
     let accommodation = await Accommodation.findByPk(
@@ -617,7 +726,7 @@ exports.createRating = async (req, res) => {
       });
     }
 
-    //Create rating object
+    //Create reservation object
     let newRating = {
       user_id: req.loggedUserId,
       accommodation_id: req.params.accommodationID,
@@ -630,33 +739,34 @@ exports.createRating = async (req, res) => {
       let ratings = await Rating.findAll({
         where: { accommodation_id: req.params.accommodationID },
       });
+      console.log("entrouuuuuuuuuuuuuuuuuuuuuu");
       console.log(ratings.length);
 
-      let total
-      for(let i=0; i< ratings.length; i++){
-        total += ratings[i]
+      let total = 0;
+      for (let i = 0; i < ratings.length; i++) {
+        total += ratings[i].rating;
+        
       }
-
-      let updateAccommodation = await Accommodation.update(
-        {
-          rating: total / ratings.length,
-        },
-        { where: { id: req.params.accommodationID } }
-      );
-
-      //check if update was successfully made
-      if (updateAccommodation == 1) {
-        res.status(200).json({
-          message: `Accommodation Rating with id ${req.params.accommodationID} updated with success.`,
-        });
-      } else {
-        res.status(400).json({
-          message: `Can't applied changes to accommodation rating with id ${req.params.accommodationID}.`,
-        });
+      console.log(total);
+      if (ratings.length != 0) {
+        let updateAccommodation = await Accommodation.update(
+          {
+            rating: total / ratings.length,
+          },
+          { where: { id: req.params.accommodationID } }
+        );
+        // check if update was successfully made
+        if (updateAccommodation == 1) {
+          res.status(200).json({
+            message: `Accommodation Rating with id ${req.params.accommodationID} updated with success.`,
+          });
+        } else {
+          res.status(400).json({
+            message: `Can't applied changes to accommodation rating with id ${req.params.accommodationID}.`,
+          });
+        }
       }
     }
-
-    res.status(201).json({ message: "New Rating created." });
   } catch (err) {
     if (err.name === "SequelizeValidationError")
       return res.status(400).json({ message: err.errors[0].message });

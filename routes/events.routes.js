@@ -12,7 +12,7 @@ router.use((req, res, next) => {
     next()
 })
 
-router.post('/', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.create) //Verificar se os campos estão vazios
+router.post('/', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.create)
 router.get('/', eventController.findAll);
 router.get('/comments',authController.verifyToken, authController.isAdmin, eventController.findAllComments)
 router.get('/:eventID', eventController.findOne);
@@ -20,11 +20,9 @@ router.put('/:eventID', authController.verifyToken, authController.isFacilitator
 router.delete('/:eventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.deleteEvent);
 
 
-router.post('/:eventID/register', authController.verifyToken, eventController.createRegistration)
-router.get('/registrations/active', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findActiveRegistrations) //Verificação do facilitador
-router.get('/registrations/unactive', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findUnactiveRegistrations) //Verificação do facilitador
-router.get('/registrations/:userEventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findOneRegistration) //Verificação do facilitador
-router.get('/:eventID/registrations', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findRegistrationByEvent) //Verificação do facilitador
+router.post('/:eventID/register', authController.verifyToken, authController.isClient, eventController.createRegistration)
+router.get('/registrations/:userEventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findOneRegistration) 
+router.get('/:eventID/registrations', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.findRegistrationByEvent) 
 router.delete('/registrations/:userEventID', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.deleteRegistration)
 
 

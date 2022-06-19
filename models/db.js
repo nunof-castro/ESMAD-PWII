@@ -43,8 +43,8 @@ db.user.belongsToMany(db.accommodation , {through: db.userAccommodation, as :'re
 db.accommodation.belongsToMany(db.user, {through: db.commentAccommodation, as: "comments_accommodation", foreignKey:"accommodation_id"})
 db.user.belongsToMany(db.accommodation , {through: db.commentAccommodation, as :'comments_accommodation', foreignKey:"user_id"})
 
-db.accommodation.belongsToMany(db.user, {through: db.commentAccommodation, as: "ratings", foreignKey:"accommodation_id"})
-db.user.belongsToMany(db.accommodation , {through: db.commentAccommodation, as :'ratings', foreignKey:"user_id"})
+db.accommodation.belongsToMany(db.user, {through: db.rating, as: "rate", foreignKey:"accommodation_id"})
+db.user.belongsToMany(db.accommodation , {through: db.rating, as :'rate', foreignKey:"user_id"})
 
 
 db.user.hasMany(db.event)

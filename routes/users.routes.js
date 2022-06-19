@@ -14,9 +14,12 @@ router.use((req, res, next) => {
 
 
 
-router.get('/', userController.findAll);
-router.get('/:userID', userController.findOne); // correto
-router.put('/:userID',authController.verifyToken, authController.isAdmin, userController.update); // correto
+router.get('/',authController.verifyToken,authController.isAdmin, userController.findAll);
+router.get('/active',authController.verifyToken,authController.isAdmin, userController.findAllActives);
+router.get('/banned',authController.verifyToken,authController.isAdmin, userController.findAllBanned);
+router.get('/:userID',authController.verifyToken,authController.isAdmin, userController.findOne);
+router.put('/ban/:userID',authController.verifyToken, authController.isAdmin, userController.update);
+router.put('/:userID',authController.verifyToken, authController.isClient, userController.updateUserInfo);
 
 //send a predefined error message for invalid routes on USERS
 router.all('*', function (req, res) {

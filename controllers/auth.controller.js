@@ -8,11 +8,11 @@ const User = db.user;
 exports.signup = async (req, res) => {
     try {// check duplicate username 
         let user = await User.findOne(
-            { where: { username: req.body.username} }
+            { where: { email: req.body.email} }
         );
 
         if (user)
-            return res.status(400).json({ message: "Failed! Username is already in use!" });
+            return res.status(400).json({ message: "Failed! Email is already in use!" });
             
         // save User to database
         user = await User.create({
@@ -22,7 +22,6 @@ exports.signup = async (req, res) => {
             first_name: req.body.first_name,
             last_name: req.body.last_name,
             user_role:req.body.user_role,
-            user_banned:0
         });
         
 
@@ -30,7 +29,6 @@ exports.signup = async (req, res) => {
         
     }
     catch (err) {
-        console.log(err.message)
         res.status(500).json({ message: err.message});
     };
 };
@@ -41,7 +39,7 @@ exports.signin= async (req, res) => {
         
 
         if (!user) 
-            return res.status(404).json({ message: `User ${req.body.username} doesn´t exist! Keep sure you register before loggin.` });
+            return res.status(404).json({ message: `User ${req.body.username} doesn't exist! Keep sure you register before loggin.` });
         // tests a string (password in body) against a hash (password in database)
         console.log("comparação",req.body.password, user.password)
         const passwordIsValid = bcrypt.compareSync( 

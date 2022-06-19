@@ -1,12 +1,10 @@
-
-require("dotenv").config()
 const config = {
     /* don't expose password or any sensitive info, done only for demo */
     // if environment variables are not defined, use default values
-    HOST: process.env.DB_HOST,
-    USER: process.env.DB_USER,
-    PASSWORD: process.env.DB_PASSWORD,
-    DB: process.env.DB_NAME,
+    HOST: process.env.DB_HOST || 'localhost',
+    USER: process.env.DB_USER || 'newuser',
+    PASSWORD: process.env.DB_PASSWORD || 'newpassword',
+    DB: process.env.DB_NAME || 'db_pw2',
     // NEW
     dialect: "mysql",
     // pool is optional, it will be used for Sequelize connection pool configuration

@@ -14,27 +14,32 @@ router.use((req, res, next) => {
 
 
 
-router.get('/', accommodationController.findAll);
-router.get('/reservations', accommodationController.findReservations) //retribuir só as validadas
-router.get('/comments',authController.verifyToken, authController.isAdmin, accommodationController.findAllComments)
-router.get('/:accommodationID', accommodationController.findOne);
-router.post('/',authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.create) //Verificar se os campos estão vazios
-router.put('/:accommodationID',authController.verifyToken,authController.isFacilitatorOrAdmin, accommodationController.updateAccommodation)
-router.delete('/:accommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.remove)
+router.get('/', accommodationController.findAll); //correta
+router.get('/reservations/active',authController.verifyToken,authController.isFacilitatorOrAdmin, accommodationController.findReservations)//correta
+router.get('/comments',authController.verifyToken, authController.isAdmin, accommodationController.findAllComments)//correta
+router.get('/:accommodationID', accommodationController.findOne);//correta
+router.post('/',authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.create) //correta
+router.put('/:accommodationID',authController.verifyToken,authController.isFacilitatorOrAdmin, accommodationController.updateAccommodation) //correta
+router.delete('/:accommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.remove) //correta
 
-router.post('/:accommodationID/reservations',authController.verifyToken, accommodationController.createReservation)
-router.get('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findOneReservation) //Verificação do facilitador
-router.get('/:accommodationID/reservations', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findReservationByAccommodation) //Verificação do facilitador
-router.put('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.validateReservation)
-router.delete('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.deleteReservation)
+router.post('/:accommodationID/reservations',authController.verifyToken,authController.isClient, accommodationController.createReservation) //correta
+router.get('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findOneReservation) //correta
+router.get('/:accommodationID/reservations', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findReservationByAccommodation) //correta
+// router.get('/:accommodationID/reservations', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findActiveReservationByAccommodation)
+// router.get('/:accommodationID/reservations', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findUnactiveReservationByAccommodation)
+router.put('/reservations/:userAccommodationID', authController.verifyToken, accommodationController.validateReservation) //correta
+router.delete('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.deleteReservation) //correta
 
-router.post('/:accommodationID/comments',authController.verifyToken, authController.isClient, accommodationController.createComment)
-router.get('/:accommodationID/comments',authController.verifyToken,authController.isAdmin, accommodationController.findCommentsbyAccommodationId)
-router.get('/comments/:commentID',authController.verifyToken,authController.isAdmin, accommodationController.findCommentById)
-router.delete('/comments/:commentID', authController.verifyToken, authController.isAdmin, accommodationController.deleteComment)
-router.put('/comments/:commentID', authController.verifyToken, accommodationController.updateComment)
+router.post('/:accommodationID/comments',authController.verifyToken, authController.isClient, accommodationController.createComment) //correta
+router.get('/:accommodationID/comments',authController.verifyToken,authController.isAdmin, accommodationController.findCommentsbyAccommodationId) //correta
+router.get('/comments/:commentID',authController.verifyToken,authController.isAdmin, accommodationController.findCommentById) //correta
+router.delete('/comments/:commentID', authController.verifyToken, authController.isAdmin, accommodationController.deleteComment) //correta
+router.put('/comments/:commentID', authController.verifyToken, accommodationController.updateComment) //correta
 
-router.post('/:accommodationID/ratings', authController.verifyToken, authController.isClient, accommodationController.createRating)
+router.post('/:accommodationID/ratings', authController.verifyToken, authController.isClient, accommodationController.createRating) //INCORRETA
+
+
+//rota para as reservas ativas e inativas por accommodation
 
 //send a predefined error message for invalid routes on Accommodations
 router.all('*', function (req, res) {

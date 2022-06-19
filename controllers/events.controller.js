@@ -16,6 +16,20 @@ exports.create = (req, res) => {
     price: req.body.price,
   };
 
+  if (req.body.event_type == "") {
+    return res.status(400).json({
+      message: "Event Type cant be empty",
+    });
+  } else if (req.body.address == "") {
+    return res.status(400).json({
+      message: "Address cant be empty",
+    });
+  } else if (req.body.date == "") {
+    return res.status(400).json({
+      message: "Date cant be empty",
+    });
+  }
+
   Event.create(newEvent)
     .then((data) => {
       res.status(201).json({
@@ -210,49 +224,6 @@ exports.createRegistration = async (req, res) => {
   }
 };
 
-//Get all active registrations (validation=1)
-exports.findActiveRegistrations = (req, res) => {
-  UserEvent.findAll({ where: { validation: 1 } })
-    .then((data) => {
-      if (data.length == 0) {
-        res.status(404).json({
-          message:
-            "No registrations active. Check the route /events/registrations/unactive.",
-        });
-      } else {
-        res.status(200).json(data);
-      }
-    })
-    .catch((err) => {
-      res.status(500).json({
-        message:
-          err.message ||
-          "Some error occurred while retrieving active registrations.",
-      });
-    });
-};
-
-//Get all unactive registrations (validation=0)
-exports.findUnactiveRegistrations = (req, res) => {
-  UserEvent.findAll({ where: { validation: 0 } })
-    .then((data) => {
-      if (data.length == 0) {
-        res.status(404).json({
-          message: "No registrations made.",
-        });
-      } else {
-        res.status(200).json(data);
-      }
-    })
-    .catch((err) => {
-      res.status(500).json({
-        message:
-          err.message ||
-          "Some error occurred while retrieving unactive registrations.",
-      });
-    });
-};
-
 //Get registration by user_event id
 exports.findOneRegistration = (req, res) => {
   UserEvent.findOne({ where: { id: req.params.userEventID } })
@@ -262,7 +233,13 @@ exports.findOneRegistration = (req, res) => {
           message: `Registration with id ${req.params.userEventID} not found!`,
         });
       else {
-        res.json(data);
+        if (req.loggedUserId === data.user_id) {
+          res.json(data);
+        } else {
+          res.status(400).json({
+            message: "Only facilitator who posted this event can delete it!",
+          });
+        }
       }
     })
     .catch((err) => {
@@ -273,31 +250,33 @@ exports.findOneRegistration = (req, res) => {
     });
 };
 
-
 //Get registrations by event_id
 exports.findRegistrationByEvent = (req, res) => {
-    UserEvent.findAll({
-      where: { event_id: req.params.eventID },
-    })
-      .then((data) => {
-        if (data === null)
-          res.status(404).json({
-            message: `Registration with id_event ${req.params.userEventID} not found!`,
-          });
-        else {
-          res.json(data);
-        }
-      })
-      .catch((err) => {
-        res.status(500).json({
-          message:
-            err.message ||
-            "Some error occurred while retrieving registration!",
+  UserEvent.findAll({
+    where: { event_id: req.params.eventID },
+  })
+    .then((data) => {
+      if (data === null)
+        res.status(404).json({
+          message: `Registration with id_event ${req.params.userEventID} not found!`,
         });
+      else {
+        if (req.loggedUserId === data.user_id) {
+          res.json(data);
+        } else {
+          res.status(400).json({
+            message: "Only facilitator who posted this event can delete it!",
+          });
+        }
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        message:
+          err.message || "Some error occurred while retrieving registration!",
       });
-  };
-
-
+    });
+};
 
 //Delete registration by id
 exports.deleteRegistration = (req, res) => {
@@ -342,13 +321,10 @@ exports.deleteRegistration = (req, res) => {
     });
 };
 
-
 //Create a comment
 exports.createComment = async (req, res) => {
   try {
-    let event = await Event.findByPk(
-      req.params.eventID
-    );
+    let event = await Event.findByPk(req.params.eventID);
 
     if (event === null) {
       return res.status(404).json({
@@ -399,7 +375,6 @@ exports.findAllComments = (req, res) => {
     });
 };
 
-
 //Get Comments by event id
 exports.findCommentsbyEventId = (req, res) => {
   CommentEvent.findAll({
@@ -442,7 +417,6 @@ exports.findCommentById = (req, res) => {
     });
 };
 
-
 //Delete comment
 exports.deleteComment = (req, res) => {
   CommentEvent.findOne({
@@ -483,7 +457,6 @@ exports.deleteComment = (req, res) => {
     });
 };
 
-
 //Update comment
 exports.updateComment = async (req, res) => {
   //Check if data exists in request body
@@ -493,9 +466,7 @@ exports.updateComment = async (req, res) => {
   }
 
   try {
-    let comment = await CommentEvent.findByPk(
-      req.params.commentID
-    );
+    let comment = await CommentEvent.findByPk(req.params.commentID);
 
     //Check if found pretended comment
     if (comment == null) {
@@ -509,7 +480,7 @@ exports.updateComment = async (req, res) => {
       //if so, update comment
       let updateComment = await CommentEvent.update(
         {
-          comment: req.body.comment
+          comment: req.body.comment,
         },
         { where: { id: req.params.commentID } }
       );
@@ -526,15 +497,13 @@ exports.updateComment = async (req, res) => {
       }
     } else {
       res.status(400).json({
-        message:
-          "Only user who posted this comment can change it!",
+        message: "Only user who posted this comment can change it!",
       });
     }
   } catch (e) {
     res.status(500).json({
       message:
-        e.message ||
-        `Error updating comment with id=${req.params.commentID}.`,
+        e.message || `Error updating comment with id=${req.params.commentID}.`,
     });
   }
 };
