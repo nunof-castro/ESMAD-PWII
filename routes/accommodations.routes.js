@@ -25,8 +25,6 @@ router.delete('/:accommodationID', authController.verifyToken, authController.is
 router.post('/:accommodationID/reservations',authController.verifyToken,authController.isClient, accommodationController.createReservation) //correta
 router.get('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findOneReservation) //correta
 router.get('/:accommodationID/reservations', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findReservationByAccommodation) //correta
-// router.get('/:accommodationID/reservations', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findActiveReservationByAccommodation)
-// router.get('/:accommodationID/reservations', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.findUnactiveReservationByAccommodation)
 router.put('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.validateReservation) //correta
 router.delete('/reservations/:userAccommodationID', authController.verifyToken, authController.isFacilitatorOrAdmin, accommodationController.deleteReservation) //correta
 
@@ -39,7 +37,7 @@ router.put('/comments/:commentID', authController.verifyToken, accommodationCont
 router.post('/:accommodationID/ratings', authController.verifyToken, authController.isClient, accommodationController.createRating) //INCORRETA
 
 
-//rota para as reservas ativas e inativas por accommodation
+
 
 //send a predefined error message for invalid routes on Accommodations
 router.all('*', function (req, res) {

@@ -129,7 +129,7 @@ exports.updateEvent = async (req, res) => {
         });
       }
     } else {
-      res.status(400).json({
+      res.status(401).json({
         message: "Only facilitator who posted this event can update it!",
       });
     }
@@ -171,7 +171,7 @@ exports.deleteEvent = (req, res) => {
               });
             });
         } else {
-          res.status(400).json({
+          res.status(401).json({
             message: "Only facilitator who organized this event can delete it!",
           });
         }
@@ -206,9 +206,6 @@ exports.createRegistration = async (req, res) => {
     let newRegistration = {
       user_id: req.loggedUserId,
       event_id: req.params.eventID,
-      validation: 0,
-      // rating : req.body.rating,
-      // comments: req.body.comments
     };
 
     UserEvent.create(newRegistration);
@@ -233,13 +230,23 @@ exports.findOneRegistration = (req, res) => {
           message: `Registration with id ${req.params.userEventID} not found!`,
         });
       else {
-        if (req.loggedUserId === data.user_id) {
-          res.json(data);
-        } else {
-          res.status(400).json({
-            message: "Only facilitator who posted this event can delete it!",
-          });
-        }
+        User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
+          Event.findOne({ where: { id: data.event_id } }).then(
+            (event) => {
+              if (
+                req.loggedUserId === event.userId ||
+                user.user_role == 1
+              ) {
+                res.status(200).json(data);
+              } else {
+                res.status(401).json({
+                  message:
+                    "Only facilitator who posted this event can check this registration!",
+                });
+              }
+            }
+          );
+        });
       }
     })
     .catch((err) => {
@@ -252,22 +259,34 @@ exports.findOneRegistration = (req, res) => {
 
 //Get registrations by event_id
 exports.findRegistrationByEvent = (req, res) => {
+
   UserEvent.findAll({
     where: { event_id: req.params.eventID },
   })
     .then((data) => {
-      if (data === null)
+      if (data.length == 0)
         res.status(404).json({
-          message: `Registration with id_event ${req.params.userEventID} not found!`,
+          message: `No registrations in event with id ${req.params.eventID}`,
         });
       else {
-        if (req.loggedUserId === data.user_id) {
-          res.json(data);
-        } else {
-          res.status(400).json({
-            message: "Only facilitator who posted this event can delete it!",
+
+        User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
+          Event.findOne({
+            where: { id: req.params.eventID },
+          }).then((event) => {
+            if (
+              req.loggedUserId === event.userId ||
+              user.user_role == 1
+            ) {
+              res.status(200).json(data);
+            } else {
+              res.status(401).json({
+                message:
+                  "Only facilitator who posted this event can check registrations!",
+              });
+            }
           });
-        }
+        });
       }
     })
     .catch((err) => {
@@ -287,33 +306,44 @@ exports.deleteRegistration = (req, res) => {
           message: `Registration with id ${req.params.userEventID} not found!`,
         });
       } else {
-        if (req.loggedUserId === userEvent.user_id) {
-          UserEvent.destroy({ where: { id: req.params.userEventID } })
-            .then((num) => {
-              if (num == 1) {
-                res.status(200).json({
-                  message: `Registration with id ${req.params.userEventID} deleted with success`,
+        User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
+          Event.findOne({
+            where: { id: userEvent.event_id },
+          }).then((event) => {
+            if (
+              req.loggedUserId === event.userId ||
+              user.user_role == 1
+            ) {
+              UserEvent.destroy({
+                where: { id: req.params.userEventID },
+              })
+                .then((num) => {
+                  if (num == 1) {
+                    res.status(200).json({
+                      message: `Registration with id ${req.params.userEventID} deleted with success`,
+                    });
+                  } else {
+                    res.status(404).json({
+                      message: `Registration with id ${req.params.userEventID} not found!`,
+                    });
+                  }
+                })
+                .catch((err) => {
+                  8;
+                  res.status(500).json({
+                    message:
+                      err.message ||
+                      "Some error occurred while deleting the resrevation!",
+                  });
                 });
-              } else {
-                res.status(404).json({
-                  message: `Registration with id ${req.params.userEventID} not found!`,
-                });
-              }
-            })
-            .catch((err) => {
-              8;
-              res.status(500).json({
+            } else {
+              res.status(401).json({
                 message:
-                  err.message ||
-                  "Some error occurred while deleting the registration!",
+                  "Only facilitator who posted this event can delete this reservation it!",
               });
-            });
-        } else {
-          res.status(400).json({
-            message:
-              "Only facilitator who posted this event can delete this registration!",
+            }
           });
-        }
+        })
       }
     })
     .catch((error) => {
@@ -381,7 +411,7 @@ exports.findCommentsbyEventId = (req, res) => {
     where: { event_id: req.params.eventID },
   })
     .then((data) => {
-      if (data === null)
+      if (data.length == 0)
         res.status(404).json({
           message: `No comments posted in this event!`,
         });
@@ -496,7 +526,7 @@ exports.updateComment = async (req, res) => {
         });
       }
     } else {
-      res.status(400).json({
+      res.status(401).json({
         message: "Only user who posted this comment can change it!",
       });
     }

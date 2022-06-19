@@ -12,6 +12,8 @@ router.use((req, res, next) => {
     next()
 })
 
+
+
 router.post('/', authController.verifyToken, authController.isFacilitatorOrAdmin, eventController.create)
 router.get('/', eventController.findAll);
 router.get('/comments',authController.verifyToken, authController.isAdmin, eventController.findAllComments)
@@ -27,8 +29,8 @@ router.delete('/registrations/:userEventID', authController.verifyToken, authCon
 
 
 router.post('/:eventID/comments',authController.verifyToken, authController.isClient, eventController.createComment)
-router.get('/:eventID/comments',authController.verifyToken,authController.isAdmin, eventController.findCommentsbyEventId)
-router.get('/comments/:commentID',authController.verifyToken,authController.isAdmin, eventController.findCommentById)
+router.get('/:eventID/comments',authController.verifyToken, eventController.findCommentsbyEventId)
+router.get('/comments/:commentID',authController.verifyToken, eventController.findCommentById)
 router.delete('/comments/:commentID', authController.verifyToken, authController.isAdmin, eventController.deleteComment)
 router.put('/comments/:commentID', authController.verifyToken, eventController.updateComment)
 

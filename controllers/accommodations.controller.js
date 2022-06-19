@@ -10,7 +10,22 @@ const { rating } = require("../models/db.js");
 
 //Get all accommodations
 exports.findAll = (req, res) => {
+  let { rating } = req.query;
+
+  let condition = null;
+
+  if (rating) {
+    if (condition == null) {
+      condition = {
+        rating: { [Op.gte]: rating },
+      };
+    } else {
+      condition["rating"] = { [Op.gte]: rating };
+    }
+  }
+
   Accommodation.findAll({
+    where: condition,
     include: [
       {
         model: User,
@@ -331,7 +346,7 @@ exports.findReservationByAccommodation = (req, res) => {
     where: { accommodation_id: req.params.accommodationID },
   })
     .then((data) => {
-      if (data.length ==0)
+      if (data.length == 0)
         res.status(404).json({
           message: `Reservation with id_accommodation ${req.params.accommodationID} not found!`,
         });
@@ -382,7 +397,12 @@ exports.validateReservation = async (req, res) => {
       });
       return;
     }
-    if (req.loggedUserId === user_accommodation.user_id) {
+
+    let accommodation = await Accommodation.findOne({
+      where: { id: user_accommodation.accommodation_id },
+    });
+
+    if (req.loggedUserId === accommodation.userId) {
       let updateReservation = await UserAccommodation.update(
         {
           validation: req.body.validation,
@@ -424,35 +444,44 @@ exports.deleteReservation = (req, res) => {
           message: `Reservation with id ${req.params.userAccommodationID} not found!`,
         });
       } else {
-        if (req.loggedUserId === userAccommodation.user_id) {
-          UserAccommodation.destroy({
-            where: { id: req.params.userAccommodationID },
-          })
-            .then((num) => {
-              if (num == 1) {
-                res.status(200).json({
-                  message: `Reservation with id ${req.params.userAccommodationID} deleted with success`,
+        User.findOne({ where: { id: req.loggedUserId } }).then((user) => {
+          Accommodation.findOne({
+            where: { id: userAccommodation.accommodation_id },
+          }).then((accommodation) => {
+            if (
+              req.loggedUserId === accommodation.userId ||
+              user.user_role == 1
+            ) {
+              UserAccommodation.destroy({
+                where: { id: req.params.userAccommodationID },
+              })
+                .then((num) => {
+                  if (num == 1) {
+                    res.status(200).json({
+                      message: `Reservation with id ${req.params.userAccommodationID} deleted with success`,
+                    });
+                  } else {
+                    res.status(404).json({
+                      message: `Reservation with id ${req.params.userAccommodationID} not found!`,
+                    });
+                  }
+                })
+                .catch((err) => {
+                  8;
+                  res.status(500).json({
+                    message:
+                      err.message ||
+                      "Some error occurred while deleting the resrevation!",
+                  });
                 });
-              } else {
-                res.status(404).json({
-                  message: `Reservation with id ${req.params.userAccommodationID} not found!`,
-                });
-              }
-            })
-            .catch((err) => {
-              8;
-              res.status(500).json({
+            } else {
+              res.status(401).json({
                 message:
-                  err.message ||
-                  "Some error occurred while deleting the resrevation!",
+                  "Only facilitator who posted this accommodation can delete this reservation it!",
               });
-            });
-        } else {
-          res.status(400).json({
-            message:
-              "Only facilitator who posted this accommodation can delete this reservation!",
+            }
           });
-        }
+        });
       }
     })
     .catch((error) => {
@@ -523,7 +552,7 @@ exports.findCommentsbyAccommodationId = (req, res) => {
     where: { accommodation_id: req.params.accommodationID },
   })
     .then((data) => {
-      if (data === null)
+      if (data.length == 0)
         res.status(404).json({
           message: `No comments posted in this accommodation!`,
         });
@@ -577,10 +606,6 @@ exports.deleteComment = (req, res) => {
             if (num == 1) {
               res.status(200).json({
                 message: `Comment with id ${req.params.commentID} deleted with success`,
-              });
-            } else {
-              res.status(404).json({
-                message: `Comment with id ${req.params.commentID} not found!`,
               });
             }
           })
@@ -638,7 +663,7 @@ exports.updateComment = async (req, res) => {
         });
       }
     } else {
-      res.status(400).json({
+      res.status(401).json({
         message: "Only user who posted this comment can change it!",
       });
     }
@@ -650,7 +675,7 @@ exports.updateComment = async (req, res) => {
   }
 };
 
-//Create a reservation
+//Rate Accommodation
 exports.createRating = async (req, res) => {
   try {
     let accommodation = await Accommodation.findByPk(
@@ -676,7 +701,7 @@ exports.createRating = async (req, res) => {
       });
     }
 
-    //Create reservation object
+    //Create rating object
     let newRating = {
       user_id: req.loggedUserId,
       accommodation_id: req.params.accommodationID,
